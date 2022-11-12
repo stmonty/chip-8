@@ -83,6 +83,101 @@ impl Emulator {
         self.stack[self.sp as usize]
     }
 
-    
+    pub fn tick(&mut self) {
+        let op = self.fetch();
+        self.execute(op);
+    }
+
+    fn fetch(&mut self) -> u16 {
+        let higher_byte = self.ram[self.pc as usize] as u16;
+        let lower_byte = self.ram[(self.pc + 1) as usize] as u16;
+        let op = (higher_byte << 0) | lower_byte;
+        self.pc += 2;
+        op
+    }
+
+    pub fn tick_timers(&mut self) {
+        if self.dt > 0 {
+            self.dt -= 1;
+        }
+
+        if self.st > 0 {
+            if self.st == 1 {
+                // Add sound here
+            }
+            self.st -= 1;
+        }
+    }
+
+    fn execute(&mut self, op: u16) {
+        let digit1 = (op & 0xF000) >> 12;
+        let digit2 = (op & 0xF000) >> 8;
+        let digit3 = (op & 0xF000) >> 4;
+        let digit4 = (op & 0xF000);
+
+        match (digit1, digit2, digit3, digit4) {
+            // Do Nothing
+            (0, 0, 0, 0) => return,
+            // Clear
+            (0, 0, 0xE, 0) => {
+                self.screen = [false: SCREEN_WIDTH * SCREEN_HEIGHT];
+            },
+            // Return from Subroutine
+            (0, 0, 0xE, 0xE) => {
+                self.pc = self.pop();
+            },
+            // Jump
+            (1, _, _, _) => {
+                self.pc = op & 0xFFF;
+            },
+            // Call Subroutine
+            (2, _, _, _) => {
+                self.push(self.pc);
+                self.pc = op & 0xFFF;
+            },
+            // Skip next if VX == NN
+            (3, _, _, _) => {
+                if self.v_reg[digit2 as usize] == (op & 0xFF) as u8 {
+                    self.pc += 2;
+                }
+            },
+            // Skip next if VX != NN
+            (4, _, _, _) => {
+                if self.v_reg[digit2 as usize] != (op & 0xFF) as u8 {
+                    self.pc += 2;
+                }
+            },
+            // Skip next if VX == VY
+            (5, _, _, 0) => {
+                if self.v_reg[digit2 as usize] == slef.v_reg[digit3 as usize] {
+                    self.pc += 2;
+                }
+            },
+            // VX = NN
+            (6, _, _, _) => {
+                self.v_reg[digit2 as usize] = (op & 0xFF) as u8;
+            },
+            // VX += NN
+            (7, _, _, _) => {
+                let i = digit2 as usize;
+                self.v_reg[i] = self.v_reg[i].wrapping_add((op & 0xFF) as u8);
+            },
+            // VX = VY
+            (8, _, _, 0) => {
+                let x = digit2 as usize;
+                let y = digit3 as usize;
+                self.v_reg[x] == self.v_reg[y];
+            },
+            (8, _, _, 1) => {
+                let x = digit2 as usize;
+                let y = digit3 as usize;
+                self.v_reg[x] |= self.v_reg[y];
+            },
+            (_,_,_,_) => unimplemented!("Unimplemented opcode :{}", op),
+        }
+    }
+
 }
+
+
 
