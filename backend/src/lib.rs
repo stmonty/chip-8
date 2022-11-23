@@ -119,7 +119,7 @@ impl Emulator {
         self.keys[idx] = pressed;
     }
 
-    pub fn load(&mut self, data, &[u8]) {
+    pub fn load(&mut self, data: &[u8]) {
         let start = START_ADDR as usize;
         let end = (START_ADDR as usize) + data.len();
         self.ram[start..end].copy_from_slice(data);
@@ -136,7 +136,7 @@ impl Emulator {
             (0, 0, 0, 0) => return,
             // Clear
             (0, 0, 0xE, 0) => {
-                self.screen = [false: SCREEN_WIDTH * SCREEN_HEIGHT];
+                self.screen = [false; SCREEN_WIDTH * SCREEN_HEIGHT];
             },
             // Return from Subroutine
             (0, 0, 0xE, 0xE) => {
@@ -182,7 +182,7 @@ impl Emulator {
             (8, _, _, 0) => {
                 let x = digit2 as usize;
                 let y = digit3 as usize;
-                self.v_reg[x] == self.v_reg[y];
+                self.v_reg[x] = self.v_reg[y];
             },
             (8, _, _, 1) => {
                 let x = digit2 as usize;
@@ -290,7 +290,7 @@ impl Emulator {
                 }
             },
             // Skip if Key Not Pressed
-            (0xE, _, 9, 0xE) => {
+            (0xE, _, 0xA, 1) => {
                 let x = digit2 as usize;
                 let vx = self.v_reg[x];
                 let key = self.keys[vx as usize];
